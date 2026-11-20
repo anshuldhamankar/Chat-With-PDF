@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat with PDF</title>
+  <style>
+    body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+    #chat-box { border: 1px solid #ccc; height: 350px; overflow-y: auto; padding: 10px; margin-bottom: 10px; border-radius: 6px; }
+    .user { text-align: right; color: #0070f3; margin: 6px 0; }
+    .bot  { text-align: left;  color: #333;    margin: 6px 0; }
+    input[type=text] { width: 80%; padding: 8px; }
+    button { padding: 8px 14px; cursor: pointer; }
+    #status { color: green; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h2>📄 Chat with PDF</h2>
+
+  <input type="file" id="pdf-file" accept=".pdf">
+  <button onclick="uploadPDF()">Upload</button>
+  <span id="status"></span>
+
+  <hr>
+
+  <div id="chat-box"></div>
+  <input type="text" id="question" placeholder="Ask something..." onkeydown="if(event.key==='Enter') ask()">
+  <button onclick="ask()">Send</button>
+
+  <script>
+    async function uploadPDF() {
+      const file = document.getElementById("pdf-file").files[0];
+      if (!file) return alert("Select a PDF first.");
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/upload", { method: "POST", body: form });
+      const data = await res.json();
+      document.getElementById("status").textContent = data.message;
+    }
+
+    async function ask() {
+      const q = document.getElementById("question").value.trim();
+      if (!q) return;
+      addMessage(q, "user");
+      document.getElementById("question").value = "";
+
+      const form = new FormData();
+      form.append("question", q);
+      try {
+        const res = await fetch("/chat", { method: "POST", body: form });
+        const data = await res.json();
+        addMessage(data.answer || data.detail || "No response", "bot");
+      } catch (e) {
+        addMessage("Error: " + e.message, "bot");
+      }
+    }
+
+    function addMessage(text, role) {
+      const box = document.getElementById("chat-box");
+      const div = document.createElement("div");
+      div.className = role;
+      div.textContent = (role === "user" ? "You: " : "Bot: ") + text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+  </script>
+</body>
+</html>
